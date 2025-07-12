@@ -3,30 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Academic Conferences | UCI Dermatology</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Academic Conferences - UCI Dermatology</title>
   <style>
-    table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; }
+    body { font-family: Arial, sans-serif; margin: 0; display: flex; }
+    nav {
+      width: 200px;
+      background-color: #f7f7f7;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    nav img { max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 1rem; }
+    nav a { display: block; margin-bottom: 1rem; text-decoration: none; color: #036; font-weight: bold; }
+    main { flex: 1; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
     th, td { border: 1px solid #000; padding: 8px; text-align: left; }
     thead { background-color: #f2f2f2; }
+    h2 { margin-top: 0; }
+    hr { margin: 1rem 0; border: none; border-top: 1px solid #ccc; }
   </style>
 </head>
-<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif;">
-  <header>
-    <h1>Academic Conferences</h1>
-    <nav>
-      <a href="index.html" style="margin-right: 15px;">Home</a>
-      <a href="conferences.html">Academic Conferences</a>
-    </nav>
-    <hr />
-  </header>
+<body>
+  <nav>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3b/Myresluger2.jpg" alt="Anteater" />
+    <a href="index.html">Home</a>
+  </nav>
   <main>
+    <header>
+      <h2>Academic Conferences</h2>
+      <hr />
+    </header>
     <table>
       <thead>
         <tr>
           <th>Conference</th>
           <th>Meeting dates / location</th>
-          <th>Abstract (or poster) submission window</th>
+          <th>Abstract submission window</th>
           <th>Where to look for details</th>
           <th>Link</th>
         </tr>
@@ -34,41 +45,41 @@
       <tbody>
         <tr>
           <td><strong>CalDerm – PDA Joint Meeting 2025</strong></td>
-          <td><strong>Aug 22–24 2025</strong> · Hilton San Diego Bayfront, San Diego CA</td>
-          <td>Resident Forum / Poster abstracts <strong>open now – Jun 7 2025</strong></td>
-          <td>CalDerm.org → “CalDerm-PDA 2025” → Poster Presentations</td>
-          <td><a href="https://pacificderm.org/annual-meeting/poster-presentations/">https://pacificderm.org/annual-meeting/poster-presentations/</a></td>
+          <td><strong>Aug 22–24, 2025</strong><br />Hilton San Diego Bayfront, San Diego, CA</td>
+          <td>Resident Forum / Poster abstracts <strong>open now – Jun 7 2025</strong></td>
+          <td>CalDerm.org → "CalDerm-PDA 2025" → Poster Presentations</td>
+          <td><a href="https://pacificderm.org/annual-meeting/poster-presentations/">pacificderm.org/…/poster-presentations/</a></td>
         </tr>
         <tr>
           <td><strong>ASDS Annual Meeting 2025</strong></td>
-          <td><strong>Nov 13–16 2025</strong> · Hyatt Regency Chicago, Chicago IL</td>
+          <td><strong>Nov 13–16, 2025</strong><br />Hyatt Regency Chicago, Chicago, IL</td>
           <td>
-            • Scientific abstracts <strong>due Jul 31 2025</strong> (11:59 p.m. CT)<br>
-            • Industry abstracts <strong>due Oct 10 2025</strong>
+            Scientific abstracts <strong>due Jul 31 2025</strong> (11:59 p.m. CT)<br />
+            Industry abstracts <strong>due Oct 10 2025</strong>
           </td>
           <td>ASDS.net → Annual Meeting → Call for Abstracts</td>
-          <td><a href="https://www.asds.net/Medical-Professionals/Annual-Meeting/Call-for-Abstracts">https://www.asds.net/Medical-Professionals/Annual-Meeting/Call-for-Abstracts</a></td>
+          <td><a href="https://www.asds.net/Medical-Professionals/Annual-Meeting/Call-for-Abstracts">asds.net/…/Call-for-Abstracts</a></td>
         </tr>
         <tr>
           <td><strong>ASDP 62ᵈ Annual Meeting 2025</strong></td>
-          <td><strong>Nov 6–9 2025</strong> · Hilton Baltimore Inner Harbor, Baltimore MD</td>
-          <td>Combined Call for Abstracts <strong>Jul 15 – Aug 15 2025</strong> (1 p.m. ET)</td>
+          <td><strong>Nov 6–9, 2025</strong><br />Hilton Baltimore Inner Harbor, Baltimore, MD</td>
+          <td>Combined Call for Abstracts <strong>Jul 15 – Aug 15 2025</strong> (1 p.m. ET)</td>
           <td>ASDP.org → Annual Meeting → Call for Abstracts</td>
-          <td><a href="https://www.asdp.org/ASDPAnnualMeeting/ASDP-Annual-Meeting/Calls/Call-for-Abstracts.aspx">https://www.asdp.org/ASDPAnnualMeeting/ASDP-Annual-Meeting/Calls/Call-for-Abstracts.aspx</a></td>
+          <td><a href="https://www.asdp.org/ASDPAnnualMeeting/ASDP-Annual-Meeting/Calls/Call-for-Abstracts.aspx">asdp.org/…/Call-for-Abstracts.aspx</a></td>
         </tr>
         <tr>
-          <td><strong>AAD Gross &amp; Microscopic Symposium</strong><br>(part of <strong>AAD Annual Meeting 2026</strong>)</td>
-          <td><strong>Mar 27–31 2026</strong> · Colorado Convention Center, Denver CO</td>
-          <td><strong>Jun 11 – Sep 10 2025</strong> (11:59 a.m. CST)</td>
-          <td>AAD.org → 2026 Annual Meeting → Abstract Presentations tabs</td>
-          <td><a href="https://www.aad.org/member/meetings-education/am26/faculty-abstracts/abstracts">https://www.aad.org/member/meetings-education/am26/faculty-abstracts/abstracts</a></td>
+          <td><strong>AAD Gross & Microscopic Symposium</strong><br />(part of <strong>AAD Annual Meeting 2026</strong>)</td>
+          <td><strong>Mar 27–31, 2026</strong><br />Colorado Convention Center, Denver, CO</td>
+          <td><strong>Jun 11 – Sep 10 2025</strong> (11:59 a.m. CST)</td>
+          <td>AAD.org → 2026 Annual Meeting → Abstract Presentations</td>
+          <td><a href="https://www.aad.org/member/meetings-education/am26/faculty-abstracts/abstracts">aad.org/…/abstracts</a></td>
         </tr>
         <tr>
-          <td><strong>ASLMS Annual Conference 2026</strong></td>
-          <td><strong>May 7–9 2026</strong> · Savannah Convention Center, Savannah GA</td>
-          <td><strong>2026 call: TBA</strong> – in 2025 it ran <strong>Aug 19 – Nov 4 2024</strong>; expect similar timing</td>
-          <td>ASLMS.org → Education Center → Abstracts &amp; ePosters (for prior cycle)</td>
-          <td><a href="https://www.aslms.org/for-professionals/education-center/abstracts-and-eposters">https://www.aslms.org/for-professionals/education-center/abstracts-and-eposters</a></td>
+          <td><strong>ASLMS Annual Conference 2026</strong></td>
+          <td><strong>May 7–9, 2026</strong><br />Savannah Convention Center, Savannah, GA</td>
+          <td><strong>2026 call: TBA</strong><br />2025 cycle ran Aug 19 – Nov 4 2024</td>
+          <td>ASLMS.org → Education Center → Abstracts & ePosters</td>
+          <td><a href="https://www.aslms.org/for-professionals/education-center/abstracts-and-eposters">aslms.org/…/abstracts-and-eposters</a></td>
         </tr>
       </tbody>
     </table>
