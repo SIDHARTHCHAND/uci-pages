@@ -148,7 +148,12 @@ td{border:1px solid #ccc;padding:4px 6px;font-size:.9rem}
 .break-row{font-style:italic;text-align:center;background:#f4f4f4}
 </style></head><body>
 <nav><img src="https://sidharthchand.github.io/uci-pages/anteaterzotzot.jpeg" alt="Anteater"/>
-<a href="index.html">Home</a></nav><main><h1>Didactics Calendar</h1>"""
+<a href="index.html">Home</a></nav><main><h1>Didactics Calendar</h1>
+<p style="max-width:50em;font-size:.9rem;margin-bottom:40pt;">
+Please note the following didactics calendar is intended as a preview of the scheduled didactics for UCI Dermatology and is issued here up to a month in advance.
+The final and official didactics schedule is distributed weekly via email at least five days prior to Friday didactics.
+Any schedule posted here is subject to change without notification.
+</p>"""
 
 FOOT = "</main></body></html>"
 
