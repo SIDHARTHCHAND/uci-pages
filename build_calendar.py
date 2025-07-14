@@ -1,31 +1,22 @@
 #!/usr/bin/env python3
 """
-build_calendar.py ― Convert the UCI-Derm didactics Excel workbook into
-an HTML calendar that matches your exams.html site layout.
+build_calendar.py – Generate a styled didactics calendar HTML page
+from “Didactics _ UCI Derm 2017-Present (2).xlsx”.
 
-Key features
-------------
-✓ Displays all sessions from the 1st of the current month
-  through the *same day next month* (e.g., run on 13 Jul 2025 → 1 Jul – 13 Aug 2025).
-✓ Date bar shows IN-PERSON / VIRTUAL badge **only when at least one
-  session that day has a listed lecturer**.
-✓ Topic cell keeps its Excel background colour; Time and Lecturer stay white.
-✓ Break / holiday rows collapse into a single centred cell.
-✓ Output page includes the same sidebar, fonts, and basic styling
-  as your exams.html template.
-Usage
------
-$ python build_calendar.py "Didactics _ UCI Derm 2017-Present (2).xlsx"  didactics_calendar.html
-Requires: pip install openpyxl
+Run:
+    python build_calendar.py "Didactics _ UCI Derm 2017-Present (2).xlsx"  didactics_calendar.html
+
+Requires:
+    pip install openpyxl
 """
 
-import argparse, calendar, datetime as dt, html, re, sys
+import argparse, calendar, datetime as dt, html, math, re, sys
 from pathlib import Path
 
 import openpyxl
 
 
-# ────────────────────────── helpers ──────────────────────────────────────────
+# ────────────────────────── utility helpers ──────────────────────────
 def format_time(val) -> str:
     """Return clean '8–9 AM' style strings, coping with Excel quirks."""
     if val is None:
@@ -35,15 +26,60 @@ def format_time(val) -> str:
         if not re.search(r"\b(?:am|pm)\b", s, flags=re.I):
             s += " AM"
         return s
-    if isinstance(val, (dt.datetime, dt.date)):            # mis-parsed “8-9” date
+    if isinstance(val, (dt.datetime, dt.date)):            # Excel mis-parsed “8-9”
         return f"{val.month}–{val.day} AM"
-    if isinstance(val, (float, int)):                      # Excel serial time
-        return f"{int(round(val * 24))} AM"
+    if isinstance(val, (float, int)):                      # Serial time
+        minutes = round(val * 24 * 60)
+        hour, minute = divmod(minutes, 60)
+        amp = "PM" if hour >= 12 else "AM"
+        hour12 = hour if 1 <= hour <= 12 else abs(hour - 12)
+        return f"{hour12}:{minute:02d} {amp}"
     return str(val)
 
 
+def parse_start_minutes(time_str: str) -> int:
+    """
+    Convert first time in a range ('730', '7:30', '8–9', '08:00 AM') to minutes
+    after midnight.  Returns +∞ for unparsable strings (ensures such rows go last).
+    """
+    if not time_str:
+        return math.inf
+
+    s = time_str.lower()
+    token = re.split(r'[–-]', s)[0].strip()            # up to first dash
+    ampm_in_token = re.search(r'\b(am|pm)\b', token)
+    ampm = ampm_in_token.group(1) if ampm_in_token else None
+
+    # Fallback: look later in string for am/pm if not in token
+    if ampm is None:
+        g = re.search(r'\b(am|pm)\b', s)
+        ampm = g.group(1) if g else None
+
+    # Remove am/pm & punctuation for number parsing
+    digits = re.sub(r'\b(?:am|pm)\b', '', token)
+    digits = digits.replace(':', '').replace(' ', '')
+
+    if not digits.isdigit():
+        return math.inf
+
+    if len(digits) <= 2:                    # “8”
+        hour, minute = int(digits), 0
+    elif len(digits) == 3:                  # “730”
+        hour, minute = int(digits[:-2]), int(digits[-2:])
+    else:                                   # “0830”, “1030”
+        hour, minute = int(digits[:-2]), int(digits[-2:])
+
+    # Apply AM/PM adjustments
+    if ampm == 'pm' and hour < 12:
+        hour += 12
+    elif (ampm == 'am' or ampm is None) and hour == 12:
+        hour = 0
+
+    return hour * 60 + minute
+
+
 def cell_hex(cell) -> str | None:
-    """Return '#RRGGBB' from a cell’s fill, or None if uncoloured/white/black."""
+    """Return '#RRGGBB' from a cell’s fill, ignoring white/black/blank."""
     rgb = getattr(cell.fill.start_color, "rgb", None)
     if rgb and rgb[-6:].lower() not in ("ffffff", "000000"):
         return f"#{rgb[-6:]}"
@@ -51,47 +87,50 @@ def cell_hex(cell) -> str | None:
 
 
 def badge_class(setting: str) -> str:
+    """Map Excel Setting column to CSS class."""
     return "virtual" if setting.strip().lower().startswith("v") else "in-person"
 
 
 def next_month_same_day(date: dt.date) -> dt.date:
-    """Return the same day next month (or last valid day if that month is shorter)."""
+    """Return the same day next month (or last valid day if month shorter)."""
     year = date.year + (date.month // 12)
     month = (date.month % 12) + 1
-    last_day = calendar.monthrange(year, month)[1]
-    return dt.date(year, month, min(date.day, last_day))
+    last = calendar.monthrange(year, month)[1]
+    return dt.date(year, month, min(date.day, last))
 
 
-# ────────────────────────── workbook loader ─────────────────────────────────
-def load_events(xlsx_path: Path) -> list[dict]:
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-    ws = wb[wb.sheetnames[0]]  # first sheet = current academic year
+# ────────────────────────── load events from workbook ───────────────────────
+def load_events(xlsx: Path) -> list[dict]:
+    wb = openpyxl.load_workbook(xlsx, data_only=True)
+    ws = wb[wb.sheetnames[0]]                  # first sheet = current academic year
 
-    events = []
+    evts = []
     for row in ws.iter_rows(min_row=2, values_only=False):
-        d_cell, t_cell, subj_cell, lect_cell, set_cell = row[:5]
+        d, t, subj, lect, setting = row[:5]
+        if not isinstance(d.value, (dt.datetime, dt.date)):
+            continue                           # skip headers/blanks
 
-        if not isinstance(d_cell.value, (dt.datetime, dt.date)):
-            continue  # skip header/spacer rows
+        date = d.value.date() if isinstance(d.value, dt.datetime) else d.value
+        time_str = format_time(t.value)
 
-        date = d_cell.value.date() if isinstance(d_cell.value, dt.datetime) else d_cell.value
-        events.append(
+        evts.append(
             {
-                "date": date,
-                "time": format_time(t_cell.value),
-                "subject": (subj_cell.value or "").strip(),
-                "lecturer": (lect_cell.value or "").strip(),
-                "setting": (set_cell.value or "").strip(),
-                "row_hex": cell_hex(subj_cell),
+                "date":      date,
+                "time":      time_str,
+                "start_min": parse_start_minutes(time_str),
+                "subject":   (subj.value or "").strip(),
+                "lecturer":  (lect.value or "").strip(),
+                "setting":   (setting.value or "").strip(),
+                "row_hex":   cell_hex(subj),
             }
         )
-    return events
+    return evts
 
 
-# ────────────────────────── renderer ────────────────────────────────────────
-TEMPLATE_HEAD = """<!DOCTYPE html>
+# ────────────────────────── page template fragments ─────────────────────────
+HEAD = """<!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Didactics Calendar – UCI Dermatology</title>
 <style>
 body{font-family:Arial,Helvetica,sans-serif;margin:0;display:flex}
@@ -111,84 +150,70 @@ td{border:1px solid #ccc;padding:4px 6px;font-size:.9rem}
 <nav><img src="https://sidharthchand.github.io/uci-pages/anteaterzotzot.jpeg" alt="Anteater"/>
 <a href="index.html">Home</a></nav><main><h1>Didactics Calendar</h1>"""
 
-TEMPLATE_FOOT = "</main></body></html>"
+FOOT = "</main></body></html>"
 
 
-def render(events: list[dict], outfile: Path) -> None:
-    out = [TEMPLATE_HEAD]
+# ────────────────────────── render HTML ─────────────────────────────────────
+def render(events: list[dict], out_path: Path) -> None:
+    out = [HEAD]
     current_date = None
 
-    for i, ev in enumerate(events):
-        if ev["date"] != current_date:                         # new date section
+    for idx, ev in enumerate(events):
+        if ev["date"] != current_date:                    # = new day header
             current_date = ev["date"]
             pretty = current_date.strftime("%A, %B %-d %Y")
 
-            # Badge only if at least one session with lecturer on that day
-            same_day_events = [e for e in events if e["date"] == current_date]
-            has_lecturer = any(e["lecturer"] for e in same_day_events)
-            if has_lecturer:
-                badge = badge_class(same_day_events[0]["setting"])
+            day_events = [e for e in events if e["date"] == current_date]
+            show_badge = any(e["lecturer"] for e in day_events)
+            if show_badge:
+                badge = badge_class(day_events[0]["setting"])
                 badge_txt = "VIRTUAL" if badge == "virtual" else "IN PERSON"
-                out.append(
-                    f'<span class="date-bar">{pretty}'
-                    f'<span class="status {badge}">{badge_txt}</span></span>'
-                )
+                out.append(f'<span class="date-bar">{pretty}<span class="status {badge}">{badge_txt}</span></span>')
             else:
                 out.append(f'<span class="date-bar">{pretty}</span>')
 
             out.append("<table>")
 
-        # Row creation
         subj_style = f' style="background:{ev["row_hex"]};"' if ev["row_hex"] else ""
-        if not ev["lecturer"]:                                 # break/holiday row
-            out.append(
-                f'<tr><td class="break-row" colspan="3"{subj_style}>'
-                f'{html.escape(ev["subject"])}</td></tr>'
-            )
-        else:                                                  # normal session row
+        if not ev["lecturer"]:                            # break/holiday row
+            out.append(f'<tr><td class="break-row" colspan="3"{subj_style}>{html.escape(ev["subject"])}</td></tr>')
+        else:                                             # normal lecture row
             out.append(
                 f'<tr><td>{html.escape(ev["time"])}</td>'
                 f'<td{subj_style}>{html.escape(ev["subject"])}</td>'
                 f'<td>{html.escape(ev["lecturer"])}</td></tr>'
             )
 
-        # Close table when next event is a different date
-        nxt_date = events[i + 1]["date"] if i + 1 < len(events) else None
+        # close table when next event is a different date
+        nxt_date = events[idx + 1]["date"] if idx + 1 < len(events) else None
         if nxt_date != current_date:
             out.append("</table>")
 
-    out.append(TEMPLATE_FOOT)
-    outfile.write_text("\n".join(out), encoding="utf-8")
-    print(f"✓ Wrote {outfile}")
+    out.append(FOOT)
+    out_path.write_text("\n".join(out), encoding="utf-8")
+    print(f"✓ Wrote {out_path}")
 
 
-# ────────────────────────── CLI ──────────────────────────────────────────────
+# ────────────────────────── main ────────────────────────────────────────────
 def main() -> None:
     ap = argparse.ArgumentParser(description="Excel → styled didactics calendar")
     ap.add_argument("excel", help="Path to didactics workbook (.xlsx)")
-    ap.add_argument(
-        "output_html", nargs="?", default="didactics_calendar.html",
-        help="Filename for generated HTML (default: didactics_calendar.html)",
-    )
+    ap.add_argument("output_html", nargs="?", default="didactics_calendar.html")
     args = ap.parse_args()
 
     events = load_events(Path(args.excel))
 
-    today = dt.date.today()
-    month_start = today.replace(day=1)            # always start at 1st of this month
-    month_end   = next_month_same_day(today)      # same day next month (inclusive)
+    today  = dt.date.today()
+    window_start = today.replace(day=1)           # always start 1st of this month
+    window_end   = next_month_same_day(today)     # inclusive same-day next month
 
-    events = [e for e in events if month_start <= e["date"] <= month_end]
+    events = [e for e in events if window_start <= e["date"] <= window_end]
     if not events:
         sys.exit("No events found in this 1-month window.")
 
-    # Sort by date then by (approx) starting hour extracted from time string
-    def sort_key(e):
-        m = re.match(r"(\d+)", e["time"])
-        hour = int(m.group(1)) if m else 0
-        return (e["date"], hour)
+    # Sort by date, then chronological start time
+    events.sort(key=lambda e: (e["date"], e["start_min"]))
 
-    events.sort(key=sort_key)
     render(events, Path(args.output_html))
 
 
