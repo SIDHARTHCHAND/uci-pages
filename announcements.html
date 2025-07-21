@@ -40,7 +40,14 @@
   <main>
     <h1>Department Announcements & Reminders</h1>
 
-    <!-- Google Form embed -->
+    <!-- ===== Feed first ===== -->
+    <h2>Recent Posts</h2>
+    <div id="posts">Loading announcements…</div>
+
+    <hr>
+
+    <!-- ===== Google Form BELOW the feed ===== -->
+    <h2>Submit a New Announcement</h2>
     <iframe
       src="https://docs.google.com/forms/d/e/1FAIpQLSe0HtGH5iUGVUr6DTf-a5wNRkkuUvyz6I4F3Slq-N0FFSyDOw/viewform?embedded=true"
       width="100%" height="680"
@@ -48,43 +55,49 @@
       Loading form…
     </iframe>
 
-    <hr>
-
-    <h2>Recent Posts</h2>
-    <div id="posts">Loading announcements…</div>
-
     <script>
       /* --- JSONP loader using Google gviz endpoint (no CORS needed) --- */
 
-      // Callback executed by the JSONP response
-      function handleSheet(json) {
-        const rows = json.table.rows;
-        rows.reverse();                         // newest first
+      // Helper to turn Google date cell into readable text
+      function formatDate(cell) {
+        if (!cell) return '';
+        if (cell.f) return cell.f;               // formatted string from Google
+        if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
+          const nums = cell.v.match(/\d+/g).map(Number); // [yyyy,mm,dd,hh,mm,ss]
+          const d = new Date(nums[0], nums[1], nums[2], nums[3]||0, nums[4]||0, nums[5]||0);
+          return d.toLocaleString();
+        }
+        return cell.v || '';
+      }
 
+      function handleSheet(json) {
+        const rows = json.table.rows.reverse();    // newest first
         const container = document.getElementById('posts');
         container.innerHTML = '';
 
         rows.forEach(r => {
-          const [ts, title, message, author] = r.c.map(c => c ? c.v : '');
-          if (!title && !message) return;       // skip blank rows
+          const tsCell  = r.c[0];
+          const title   = r.c[1]?.v || '';
+          const message = r.c[2]?.v || '';
+          const author  = r.c[3]?.v || '';
+          if (!title && !message) return;
 
           const card = document.createElement('div');
           card.className = 'card';
           card.innerHTML = `
             <h3>${title || '(No title)'}</h3>
-            <small>${new Date(ts).toLocaleString()}${author ? ' – ' + author : ''}</small>
+            <small>${formatDate(tsCell)}${author ? ' – ' + author : ''}</small>
             <p style="white-space:pre-line;margin:8px 0 0;">${message}</p>`;
           container.appendChild(card);
         });
       }
 
-      // Inject JSONP <script> tag — updated to NEW sheet ID
       (function () {
         const script = document.createElement('script');
         script.src =
-  'https://docs.google.com/spreadsheets/d/1JTWfCbBKFZ24b0cNQpF1o9GDmvalbaOzmkcrqHGbMAU/gviz/tq?' +
-  'gid=0&' +
-  'tqx=out:json;responseHandler:handleSheet';
+          'https://docs.google.com/spreadsheets/d/1JTWfCbBKFZ24b0cNQpF1o9GDmvalbaOzmkcrqHGbMAU/gviz/tq?' +
+          'gid=0&' +
+          'tqx=out:json;responseHandler:handleSheet';
         document.body.appendChild(script);
       })();
     </script>
