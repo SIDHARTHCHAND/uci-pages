@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Announcements – UCI Dermatology</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; display: flex; }
+    nav {
+      width: 200px;
+      background-color: #f7f7f7;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    nav img { max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 1rem; }
+    nav a { display: block; margin-bottom: 1rem; text-decoration: none; color: #036; font-weight: bold; }
+    main { flex: 1; padding: 20px; }
+    h1 { margin-top: 0; font-size: 20px; }
+    h2 { font-size: 18px; }
+    iframe { background:#fff;border:1px solid #ccc;border-radius:4px; }
+    .card {
+      border:1px solid #ccc;
+      padding:10px 12px;
+      margin:10px 0;
+      border-radius:4px;
+    }
+    .card h3 { margin:0 0 4px; font-size:17px; }
+    .card small { color:#555; }
+    a { color:#036; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <nav>
+    <img src="https://sidharthchand.github.io/uci-pages/anteaterzotzot.jpeg" alt="Anteater" />
+    <a href="index.html">Home</a>
+  </nav>
+
+  <main>
+    <h1>Department Announcements & Reminders</h1>
+
+    <!-- Google Form embed -->
+    <iframe
+      src="https://docs.google.com/forms/d/e/1FAIpQLSe0HtGH5iUGVUr6DTf-a5wNRkkuUvyz6I4F3Slq-N0FFSyDOw/viewform?embedded=true"
+      width="100%" height="680"
+      frameborder="0" marginheight="0" marginwidth="0">
+      Loading form…
+    </iframe>
+
+    <hr>
+
+    <h2>Recent Posts</h2>
+    <div id="posts">Loading announcements…</div>
+
+    <script>
+      /* --- JSONP loader using Google gviz endpoint (no CORS needed) --- */
+
+      // Callback executed by the JSONP response
+      function handleSheet(json) {
+        const rows = json.table.rows;
+        rows.reverse();                         // newest first
+
+        const container = document.getElementById('posts');
+        container.innerHTML = '';
+
+        rows.forEach(r => {
+          const [ts, title, message, author] = r.c.map(c => c ? c.v : '');
+          if (!title && !message) return;       // skip blank rows
+
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>${title || '(No title)'}</h3>
+            <small>${new Date(ts).toLocaleString()}${author ? ' – ' + author : ''}</small>
+            <p style="white-space:pre-line;margin:8px 0 0;">${message}</p>`;
+          container.appendChild(card);
+        });
+      }
+
+      // Inject JSONP <script> tag — updated to NEW sheet ID
+      (function () {
+        const script = document.createElement('script');
+        script.src =
+          'https://docs.google.com/spreadsheets/d/1JTWfCbBKFZ24b0cNQpF1o9GDmvalbaOzmkcrqHGbMAU/gviz/tq?' +
+          'sheet=Form%20Responses%201&' +         // tab name (URL‑encoded)
+          'tqx=out:json&responseHandler=handleSheet';
+        document.body.appendChild(script);
+      })();
+    </script>
+  </main>
+</body>
+</html>
