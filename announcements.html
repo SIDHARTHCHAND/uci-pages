@@ -56,22 +56,27 @@
     </iframe>
 
     <script>
-      /* --- JSONP loader using Google gviz endpoint (no CORS needed) --- */
+      /* --- JSONP loader using Google gviz endpoint --- */
 
-      // Helper to turn Google date cell into readable text
+      // Convert Google date cell to "Jul 23 2025" (no time)
       function formatDate(cell) {
         if (!cell) return '';
-        if (cell.f) return cell.f;               // formatted string from Google
-        if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
-          const nums = cell.v.match(/\d+/g).map(Number); // [yyyy,mm,dd,hh,mm,ss]
-          const d = new Date(nums[0], nums[1], nums[2], nums[3]||0, nums[4]||0, nums[5]||0);
-          return d.toLocaleString();
+        let d;
+        if (cell.v instanceof Date) {             // sometimes Google returns Date object
+          d = cell.v;
+        } else if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
+          const nums = cell.v.match(/\d+/g).map(Number); // yyyy,mm,dd,hh,mm,ss
+          d = new Date(nums[0], nums[1], nums[2]);
+        } else {
+          // If Google provides formatted string (e.g., "7/23/2025"), create Date from it
+          d = new Date(cell.v || cell.f || '');
+          if (Number.isNaN(d)) return cell.f || cell.v || '';
         }
-        return cell.v || '';
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
       }
 
       function handleSheet(json) {
-        const rows = json.table.rows.reverse();    // newest first
+        const rows = json.table.rows.reverse();      // newest first
         const container = document.getElementById('posts');
         container.innerHTML = '';
 
@@ -80,18 +85,19 @@
           const title   = r.c[1]?.v || '';
           const message = r.c[2]?.v || '';
           const author  = r.c[3]?.v || '';
-          if (!title && !message) return;
+          if (!title && !message) return;           // skip blank rows
 
           const card = document.createElement('div');
           card.className = 'card';
           card.innerHTML = `
             <h3>${title || '(No title)'}</h3>
-            <small>${formatDate(tsCell)}${author ? ' – ' + author : ''}</small>
+            <small>${formatDate(tsCell)}${author ? ' — ' + author : ''}</small>
             <p style="white-space:pre-line;margin:8px 0 0;">${message}</p>`;
           container.appendChild(card);
         });
       }
 
+      // Inject JSONP <script> tag (new Sheet ID, gid 0, combined tqx param)
       (function () {
         const script = document.createElement('script');
         script.src =
