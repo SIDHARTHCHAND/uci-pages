@@ -6,31 +6,22 @@
   <title>Announcements – UCI Dermatology</title>
 
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; display: flex; }
-    nav {
-      width: 200px;
-      background-color: #f7f7f7;
-      padding: 20px;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    }
-    nav img { max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 1rem; }
-    nav a { display: block; margin-bottom: 1rem; text-decoration: none; color: #036; font-weight: bold; }
-    main { flex: 1; padding: 20px; }
-    h1 { margin-top: 0; font-size: 20px; }
-    h2 { font-size: 18px; }
-    iframe { background:#fff;border:1px solid #ccc;border-radius:4px; }
-    .card {
-      border:1px solid #ccc;
-      padding:10px 12px;
-      margin:10px 0;
-      border-radius:4px;
-    }
-    .card h3 { margin:0 0 4px; font-size:17px; }
-    .card small { color:#555; }
-    a { color:#036; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    body  {font-family:Arial, sans-serif;margin:0;display:flex}
+    nav   {width:200px;background:#f7f7f7;padding:20px;box-shadow:2px 0 5px rgba(0,0,0,.1)}
+    nav img{max-width:100%;border-radius:4px;margin-bottom:1rem}
+    nav a {display:block;margin-bottom:1rem;text-decoration:none;color:#036;font-weight:bold}
+    main  {flex:1;padding:20px}
+    h1    {margin-top:0;font-size:20px}
+    h2    {font-size:18px}
+    iframe{background:#fff;border:1px solid #ccc;border-radius:4px}
+    .card {border:1px solid #ccc;padding:10px 12px;margin:10px 0;border-radius:4px}
+    .card small{color:#555}
+    .links{margin:8px 0 0}
+    .links a{color:#036;text-decoration:none}
+    .links a:hover{text-decoration:underline}
   </style>
 </head>
+
 <body>
   <nav>
     <img src="https://sidharthchand.github.io/uci-pages/anteaterzotzot.jpeg" alt="Anteater" />
@@ -50,61 +41,73 @@
     <h2>Submit a New Announcement</h2>
     <iframe
       src="https://docs.google.com/forms/d/e/1FAIpQLSe0HtGH5iUGVUr6DTf-a5wNRkkuUvyz6I4F3Slq-N0FFSyDOw/viewform?embedded=true"
-      width="100%" height="680"
-      frameborder="0" marginheight="0" marginwidth="0">
+      width="100%" height="680" frameborder="0" marginheight="0" marginwidth="0">
       Loading form…
     </iframe>
 
     <script>
-      /* --- JSONP loader using Google gviz endpoint --- */
+      /* ------------ Helper utilities ------------- */
 
-      // Convert Google date cell to "Jul 23 2025" (no time)
+      const safe = v => (v && v !== 'None') ? v : '';
+
+      // Always return "Jul 23 2025"
       function formatDate(cell) {
         if (!cell) return '';
         let d;
-        if (cell.v instanceof Date) {             // sometimes Google returns Date object
-          d = cell.v;
-        } else if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
-          const nums = cell.v.match(/\d+/g).map(Number); // yyyy,mm,dd,hh,mm,ss
-          d = new Date(nums[0], nums[1], nums[2]);
-        } else {
-          // If Google provides formatted string (e.g., "7/23/2025"), create Date from it
-          d = new Date(cell.v || cell.f || '');
-          if (Number.isNaN(d)) return cell.f || cell.v || '';
-        }
-        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        if (cell.v instanceof Date) { d = cell.v; }
+        else if (typeof cell.v === 'string' && cell.v.startsWith('Date(')) {
+          const n = cell.v.match(/\d+/g).map(Number); d = new Date(n[0], n[1], n[2]);
+        } else { d = new Date(cell.f || cell.v || ''); }
+        return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
       }
 
+      // Turn raw "Key Links" text into clickable links
+      function formatLinks(raw) {
+        if (!raw) return '';
+        const parts = raw.split(/[\s,]+/).filter(Boolean);
+        const html  = parts.map(u => `<a href="${u}">${u}</a>`).join('<br>');
+        return `<p class="links"><strong>Key Links:</strong><br>${html}</p>`;
+      }
+
+      /* ------------ JSONP callback ------------- */
       function handleSheet(json) {
-        const rows = json.table.rows.reverse();      // newest first
+        const rows = json.table.rows.reverse();          // newest first
         const container = document.getElementById('posts');
         container.innerHTML = '';
 
         rows.forEach(r => {
-          const tsCell  = r.c[0];
-          const title   = r.c[1]?.v || '';
-          const message = r.c[2]?.v || '';
-          const author  = r.c[3]?.v || '';
-          if (!title && !message) return;           // skip blank rows
+          const dateCell = r.c[0];
+          const title    = safe(r.c[1]?.v);              // Title column
+          const message  = safe(r.c[2]?.v);              // Message column
+          const author   = safe(r.c[3]?.v);              // Author column
+          const linksRaw = safe(r.c[4]?.v);              // Key Links column
+          if (!title && !message) return;                // nothing to show
 
           const card = document.createElement('div');
           card.className = 'card';
+
+          // Build announcement body (title bold then message, or just message)
+          const bodyText = title
+            ? `<strong>${title}</strong>${message ? '<br>' + message : ''}`
+            : message;
+
           card.innerHTML = `
-            <h3>${title || '(No title)'}</h3>
-            <small>${formatDate(tsCell)}${author ? ' — ' + author : ''}</small>
-            <p style="white-space:pre-line;margin:8px 0 0;">${message}</p>`;
+            <small>${formatDate(dateCell)}${author ? ' — ' + author : ''}</small>
+            <p style="white-space:pre-line;margin:8px 0 0;">${bodyText}</p>
+            ${formatLinks(linksRaw)}
+          `;
           container.appendChild(card);
         });
       }
 
-      // Inject JSONP <script> tag (new Sheet ID, gid 0, combined tqx param)
+      /* ------------ Inject JSONP ------------- */
       (function () {
-        const script = document.createElement('script');
-        script.src =
+        const s = document.createElement('script');
+        s.src =
           'https://docs.google.com/spreadsheets/d/1JTWfCbBKFZ24b0cNQpF1o9GDmvalbaOzmkcrqHGbMAU/gviz/tq?' +
           'gid=0&' +
           'tqx=out:json;responseHandler:handleSheet';
-        document.body.appendChild(script);
+        document.body.appendChild(s);
       })();
     </script>
   </main>
