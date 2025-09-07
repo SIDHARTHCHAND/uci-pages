@@ -9,6 +9,7 @@ Run:
 Requires:
     pip install openpyxl
 """
+from __future__ import annotations
 
 import argparse, calendar, datetime as dt, html, math, re, sys
 from pathlib import Path
